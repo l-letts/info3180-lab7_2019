@@ -5,27 +5,36 @@ Werkzeug Documentation:  http://werkzeug.pocoo.org/documentation/
 This file creates your application.
 """
 
-from app import app
-from flask import render_template, request
+from app import app, filefolder
+from flask import render_template, request, jsonify
+from forms import UploadForm
+from werkzeug.utils import secure_filename
+import os
 
 ###
 # Routing for your application.
 ###
 
 
-# Please create all new routes and view functions above this route.
-# This route is now our catch all route for our VueJS single page
-# application.
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def index(path):
-    """
-    Because we use HTML5 history mode in vue-router we need to configure our
-    web server to redirect all routes to index.html. Hence the additional route
-    "/<path:path".
-    Also we will render the initial webpage and then let VueJS take control.
-    """
+@app.route('/')
+def index():
+    """Render website's initial page and let VueJS take over."""
     return render_template('index.html')
+    
+    
+@app.route('/api/upload', methods=['POST'])
+def upload():
+    form=UploadForm()
+    if request.method == "POST" and form.validate_on_submit():
+        description = request.form['description']
+        file = request.files['upload']
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(filefolder, filename))
+        result = [{'message': 'File Upload Successful', 'filename': filename, 'description': description}]
+        return jsonify(result=result)
+    error_record = form_errors(form)
+    error = [{'error': error_record}]
+    return  jsonify(errors=error)
 
 
 # Here we define a function to collect form errors from Flask-WTF
